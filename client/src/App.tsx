@@ -4,6 +4,7 @@ import { Routes, Route, HashRouter } from 'react-router-dom'
 import './style.css'
 
 import Header from './components/Header'
+import List from './views/List'
 
 const App: React.FC = () => {
   return (
@@ -11,18 +12,18 @@ const App: React.FC = () => {
       <Header
         name='GD Mobile List'
         routes={{
-          List: '/',
           About: '/about',
+          Players: '/players',
+          Submit: '/submit',
           AllExtremes: '/extremes',
           LevelPacks: '/packs',
-          TopPlayers: '/players',
           UpdateLog: '/updates'
         }}
       />
       <Routes>
         <Route
           path='/'
-          element={[]}
+          element={<List/>}
         />
       </Routes>
     </HashRouter>

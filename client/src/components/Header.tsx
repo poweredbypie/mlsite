@@ -10,12 +10,12 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ name, routes }: HeaderProps) => {
-  const tabs = ['List', 'About', 'All Extremes', 'Level Packs', 'Top Players', 'Update Log']
+  const tabs = ['List', 'About', 'All Extremes', 'Level Packs', 'Top Players', 'Update Log', 'Submit Record']
   const navigate = useNavigate()
 
   return (
     <Navbar bg='light' expand='lg'>
-      <Container>
+      <Container fluid>
         <Navbar.Brand onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
           <strong>{name}</strong>
         </Navbar.Brand>
@@ -32,18 +32,7 @@ const Header: React.FC<HeaderProps> = ({ name, routes }: HeaderProps) => {
                 {tabs[i]}
               </Nav.Link>
             ))}
-            {/* <Nav.Link href="#link">Link</Nav.Link>
-            <NavDropdown title="Dropdown" id="basic-nav-dropdown">
-              <NavDropdown.Item href="#action/3.1">Action</NavDropdown.Item>
-              <NavDropdown.Item href="#action/3.2">
-                Another action
-              </NavDropdown.Item>
-              <NavDropdown.Item href="#action/3.3">Something</NavDropdown.Item>
-              <NavDropdown.Divider />
-              <NavDropdown.Item href="#action/3.4">
-                Separated link
-              </NavDropdown.Item>
-            </NavDropdown> */}
+            <Nav.Link></Nav.Link>
           </Nav>
         </Navbar.Collapse>
       </Container>

@@ -4,7 +4,7 @@
   "description": "mobile list website",
   "main": "index.js",
   "repository": "git@github.com:benbaarber/mlsite.git",
-  "author": "<benbarber121@gmail.com>",
+  "author": "Zoink Doink",
   "license": "MIT",
   "scripts": {
     "build:server": "webpack --config server/webpack.config.js",
