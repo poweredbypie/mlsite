@@ -1,7 +1,7 @@
 const path = require('path');
 
 module.exports = {
-  entry: './client/src/App.tsx',
+  entry: path.resolve(__dirname, "src", "App.tsx"),
   mode: "development",
   target: 'web',
   module: {

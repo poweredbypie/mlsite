@@ -3,27 +3,28 @@ import { createRoot } from 'react-dom/client'
 import { Routes, Route, HashRouter } from 'react-router-dom'
 import './style.css'
 
-const App: React.FC = () => {
-  const [allowed, setAllowed] = useState(false)
+import Header from './components/Header'
 
+const App: React.FC = () => {
   return (
     <HashRouter>
-      <p>Allah</p>
-      {/* <Header
-        name='n • t'
-        // name='NoT'
+      <Header
+        name='GD Mobile List'
         routes={{
-          home: '/',
+          List: '/',
+          About: '/about',
+          AllExtremes: '/extremes',
+          LevelPacks: '/packs',
+          TopPlayers: '/players',
+          UpdateLog: '/updates'
         }}
       />
       <Routes>
         <Route
           path='/'
-          element={
-            <>{allowed ? <Home /> : <DumbGate onAllowed={(e: boolean) => setAllowed(e)} />}</>
-          }
+          element={[]}
         />
-      </Routes> */}
+      </Routes>
     </HashRouter>
   )
 }
