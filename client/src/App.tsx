@@ -11,13 +11,15 @@ const App: React.FC = () => {
     <HashRouter>
       <Header
         name='GD Mobile List'
-        routes={{
-          About: '/about',
-          Players: '/players',
-          Submit: '/submit',
-          AllExtremes: '/extremes',
-          LevelPacks: '/packs',
-          UpdateLog: '/updates'
+        mainRoutes={{
+          about: '/about',
+          players: '/players',
+          submit: '/submit'
+        }}
+        extraRoutes={{
+          allExtremes: '/extremes',
+          levelPacks: '/packs',
+          updateLog: '/updates'
         }}
       />
       <Routes>

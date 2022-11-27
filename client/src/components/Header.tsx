@@ -1,16 +1,20 @@
 import React from 'react'
-import { Container, Nav, Navbar } from 'react-bootstrap'
+import { Container, Nav, Navbar, NavDropdown } from 'react-bootstrap'
 import { useNavigate } from 'react-router-dom'
 
 interface HeaderProps {
   name: string
-  routes: {
+  mainRoutes: {
+    [display: string]: string
+  }
+  extraRoutes: {
     [display: string]: string
   }
 }
 
-const Header: React.FC<HeaderProps> = ({ name, routes }: HeaderProps) => {
-  const tabs = ['List', 'About', 'All Extremes', 'Level Packs', 'Top Players', 'Update Log', 'Submit Record']
+const Header: React.FC<HeaderProps> = ({ name, mainRoutes, extraRoutes }: HeaderProps) => {
+  const mainTabs = ['About', 'Players', 'Submit Record']
+  const extraTabs = ['All Extremes', 'Level Packs', 'Update Log']
   const navigate = useNavigate()
 
   return (
@@ -22,17 +26,32 @@ const Header: React.FC<HeaderProps> = ({ name, routes }: HeaderProps) => {
         <Navbar.Toggle aria-controls='basic-navbar-nav' />
         <Navbar.Collapse id='responsive-navbar-nav' className='justify-content-end'>
           <Nav>
-            {Object.keys(routes).map((e, i) => (
+            {Object.keys(mainRoutes).map((e, i) => (
               <Nav.Link
                 key={`link-${i}`}
                 onClick={() => {
-                  navigate(routes[e])
+                  navigate(mainRoutes[e])
                 }}
               >
-                {tabs[i]}
+                {mainTabs[i]}
               </Nav.Link>
-            ))}
-            <Nav.Link></Nav.Link>
+            ))}  
+            <NavDropdown
+              title='Extras'
+              id='nav-dropdown'
+            >
+              {Object.keys(extraRoutes).map((e, i) => (
+                <NavDropdown.Item
+                  key={`link-${i}`}
+                  onClick={() => {
+                    navigate(extraRoutes[e])
+                  }}
+                >
+                  {extraTabs[i]}
+                </NavDropdown.Item>
+              ))}
+            </NavDropdown>
+            <input placeholder='search here'/>
           </Nav>
         </Navbar.Collapse>
       </Container>
