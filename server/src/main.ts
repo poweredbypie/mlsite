@@ -23,5 +23,5 @@ app.get("/levels", async (req, res) => {
 mongoose.connect(process.env.MONGODB_URI as string);
 
 app.listen(port, () => {
-  console.log(`App listening at http://localhost:${port}`)
+  console.log(`App listening at http://localhost:${port}`);
 });
