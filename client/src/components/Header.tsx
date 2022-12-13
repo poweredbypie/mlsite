@@ -35,11 +35,8 @@ const Header: React.FC<HeaderProps> = ({ name, mainRoutes, extraRoutes }: Header
               >
                 {mainTabs[i]}
               </Nav.Link>
-            ))}  
-            <NavDropdown
-              title='Extras'
-              id='nav-dropdown'
-            >
+            ))}
+            <NavDropdown title='Extras' id='nav-dropdown'>
               {Object.keys(extraRoutes).map((e, i) => (
                 <NavDropdown.Item
                   key={`link-${i}`}
@@ -51,7 +48,7 @@ const Header: React.FC<HeaderProps> = ({ name, mainRoutes, extraRoutes }: Header
                 </NavDropdown.Item>
               ))}
             </NavDropdown>
-            <input placeholder='search here'/>
+            <input placeholder='search here' />
           </Nav>
         </Navbar.Collapse>
       </Container>

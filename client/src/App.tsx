@@ -14,19 +14,16 @@ const App: React.FC = () => {
         mainRoutes={{
           about: '/about',
           players: '/players',
-          submit: '/submit'
+          submit: '/submit',
         }}
         extraRoutes={{
           allExtremes: '/extremes',
           levelPacks: '/packs',
-          updateLog: '/updates'
+          updateLog: '/updates',
         }}
       />
       <Routes>
-        <Route
-          path='/'
-          element={<List/>}
-        />
+        <Route path='/' element={<List />} />
       </Routes>
     </HashRouter>
   )

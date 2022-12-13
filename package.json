@@ -12,7 +12,7 @@
     "build": "yarn build:server && yarn build:client",
     "start": "node dist/server/bundle.js",
     "dev": "nodemon --config client/nodemon.json",
-    "prettier": "npx prettier server/src --write && npx prettier client/src"
+    "prettier": "npx prettier server/src --write && npx prettier client/src --write"
   },
   "devDependencies": {
     "@reduxjs/toolkit": "^1.9.0",
