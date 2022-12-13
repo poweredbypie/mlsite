@@ -1,34 +1,32 @@
 import React, { useState } from 'react'
-import { Row, Col, Collapse, Button } from 'react-bootstrap'
+import { Row, Col, Accordion, Button } from 'react-bootstrap'
 
 interface LevelProps {
   n: number
   name: string
   creator: string
-  points: number
+  points: number,
+  records: [Record<any, any>]
 }
 
-const Level: React.FC<LevelProps> = ({ n, name, creator, points }: LevelProps) => {
+const Level: React.FC<LevelProps> = ({ n, name, creator, points, records }: LevelProps) => {
   const [open, setOpen] = useState(false)
 
   return (
-    <Row>
-      <Col
-        className='level-card'
-        onClick={() => setOpen(!open)}
-        aria-controls="level-records"
-        aria-expanded={open}
-      >
-        <strong>{n}. &ldquo;{name}&rdquo; by {creator}</strong> <em>&#40;{points} points&#41;</em>
-      </Col>
-      <Collapse in={open}>
+    <Accordion>
+      <Accordion.Item eventKey='0'>
+        <Accordion.Header>
+          <strong>{n}. &ldquo;{name}&rdquo; by {creator}</strong>&nbsp;<em>&#40;{points} points&#41;</em>
+        </Accordion.Header>
+        <Accordion.Body>
         <div id="level-records">
-          Anim pariatur cliche reprehenderit, enim eiusmod high life accusamus
-          terry richardson ad squid. Nihil anim keffiyeh helvetica, craft beer
-          labore wes anderson cred nesciunt sapiente ea proident.
+          <ul>
+          {records.map(e => (<li>{e.name} - <a href={e.link} target={"_blank"}>{e.link}</a>&nbsp;<i>({e.hertz}hz)</i></li>))}
+          </ul>
         </div>
-      </Collapse>
-    </Row>
+        </Accordion.Body>
+      </Accordion.Item>
+    </Accordion>
   )
 }
 
