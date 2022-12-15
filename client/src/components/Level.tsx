@@ -30,7 +30,7 @@ const Level: React.FC<LevelProps> = ({ n, name, creator, points, records }: Leve
                   <a href={e.link} target={'_blank'}>
                     {e.link}
                   </a>
-                  &nbsp;<i>({e.hertz}hz)</i>
+                  &nbsp;<i>&#40;{e.hertz}hz&#41;</i>
                 </li>
               ))}
             </ul>
