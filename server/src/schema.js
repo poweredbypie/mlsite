@@ -1,43 +1,35 @@
 import { Schema, model } from "mongoose";
 
-const recordSchema = new Schema(
-  {
-    player: { type: String, required: true },
-    level: { type: String, required: true },
-    hertz: { type: Number, required: true },
-    link: { type: String, required: true },
-    playerID: { type: Schema.Types.ObjectId, ref: "Player" },
-    levelID: { type: Schema.Types.ObjectId, ref: "Level" },
-  },
-  {}
-);
+const recordSchema = new Schema({
+  player: { type: String, required: true },
+  level: { type: String, required: true },
+  hertz: { type: Number, required: true },
+  link: { type: String, required: true },
+  playerID: { type: Schema.Types.ObjectId, ref: "Player" },
+  levelID: { type: Schema.Types.ObjectId, ref: "Level" },
+});
 
 recordSchema.pre("save", async function () {
-  const player = Player.findByName(this.player)
-    .then((p) => {
-      p.records.push(this._id);
-      p.save();
-    })
-    .catch(() => {
-      throw new Error("Player not found");
-    });
-  const level = Level.findByName(this.level)
-    .then((l) => {
-      l.records.push(this._id);
-      l.save();
-    })
-    .catch(() => {
-      throw new Error("Level not found");
-    });
+  const player = await Player.findOneAndUpdate(
+    { name: this.player },
+    { $addToSet: { records: this._id } },
+    { new: true }
+  );
+  const level = await Level.findOneAndUpdate(
+    { name: this.level },
+    { $addToSet: { records: this._id } },
+    { new: true }
+  );
   this.playerID = player._id;
   this.levelID = level._id;
+  player.updatePoints();
 });
 
 const levelSchema = new Schema(
   {
     name: { type: String, required: true },
     creator: { type: String, required: true },
-    position: { type: Number, required: true, unique: true },
+    position: { type: Number, required: true },
     records: [{ type: Schema.Types.ObjectId, ref: "Record" }],
   },
   {
@@ -52,13 +44,32 @@ const levelSchema = new Schema(
       },
     },
     statics: {
-      findByName(name) {
-        return this.findOne({ name: new RegExp(name, "i") });
+      levelPoints() {
+        return this.find({ position: { $lte: 100 } })
+          .then((levels) => {
+            return levels.map((l) => [l._id, l.position]);
+          })
+          .catch((e) => {
+            console.log(e);
+          });
       },
     },
-    methods: {},
   }
 );
+
+levelSchema.pre("save", async function () {
+  try {
+    const levels = await Level.updateMany(
+      { position: { $gte: this.position } },
+      { $inc: { position: 1 } },
+      { new: true }
+    );
+  } catch (e) {
+    console.log(e)
+  }
+  const lp = levelPoints();
+  Player.updateAllPoints(lp);
+});
 
 const playerSchema = new Schema(
   {
@@ -72,7 +83,7 @@ const playerSchema = new Schema(
     toObject: { virtuals: true },
     virtuals: {
       hertz: {
-        async get() {
+        get() {
           return this.populate("records", "hertz").then((p) => {
             let rrs = {};
             for (let r of p.records) {
@@ -103,23 +114,39 @@ const playerSchema = new Schema(
       },
     },
     statics: {
-      findByName(name) {
-        return this.findOne({ name: new RegExp(name, "i") });
+      updateAllPoints(lp) {
+        this.find({ points: { $gt: 0 } }).then((players) => {
+          var promises = [];
+          for (let p of players) {
+            const levelIDs = p.getCompletedLevels().map((l) => l._id);
+            const points = lp
+              .filter((e) => levelIDs.includes(e[0]))
+              .reduce((a, b) => a + b[1], 0);
+            p.points = points;
+            p.save();
+          }
+        });
+      },
+    },
+    methods: {
+      getCompletedLevels() {
+        return this.populate("records", "levelID").then((p) =>
+          p.records.map((r) => Level.findById(r.levelID))
+        );
+      },
+      updatePoints() {
+        const levels = this.getCompletedLevels();
+        const points = levels.map((l) => l.points).reduce((a, b) => a + b, 0);
+        this.points = points;
+        this.save();
       },
     },
   }
 );
 
-playerSchema.pre("save", async function () {
-  this.points = this.populate("records", "levelID").then(async (p) => {
-    let points = 0;
-    for await (let r of p.records) {
-      const level = await Level.findById(r.levelID);
-      points += level.points;
-    }
-    return points;
-  });
-});
+// playerSchema.pre("save", async function () {
+//   this.points = this.updatePoints();
+// });
 
 const Record = model("Record", recordSchema);
 const Level = model("Level", levelSchema);
