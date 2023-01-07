@@ -6,7 +6,7 @@ import bcrypt from "bcrypt";
 import crypto from "crypto";
 import mongoose from "mongoose";
 import path from "path";
-import { Record, Level, Player } from "./schema";
+import { Record, Level, Player } from "./schema.js";
 
 env.config();
 
