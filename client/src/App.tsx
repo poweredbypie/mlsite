@@ -13,7 +13,7 @@ const App: React.FC = () => {
         name='GD Mobile List'
         mainRoutes={{
           about: '/about',
-          players: '/players',
+          leaderboard: '/leaderboard',
           submit: '/submit',
         }}
         extraRoutes={{
