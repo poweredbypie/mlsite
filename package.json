@@ -6,13 +6,17 @@
   "repository": "git@github.com:benbaarber/mlsite.git",
   "author": "Zoink Doink",
   "license": "MIT",
+  "jest": {
+    "testEnvironment": "node"
+  },
   "scripts": {
     "build:server": "webpack --config server/webpack.config.js",
     "build:client": "webpack --config client/webpack.config.js",
     "build": "yarn build:server && yarn build:client",
     "start": "node dist/server/bundle.js",
     "dev": "nodemon --config client/nodemon.json",
-    "prettier": "npx prettier server/src --write && npx prettier client/src --write"
+    "prettier": "npx prettier server/src --write && npx prettier client/src --write",
+    "test:db": "jest --runInBand --detectOpenHandles"
   },
   "devDependencies": {
     "@reduxjs/toolkit": "^1.9.0",
