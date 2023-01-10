@@ -1,4 +1,4 @@
-import express, { Request, Response } from "express";
+import express, { Request, Response, NextFunction } from "express";
 import bodyParser from "body-parser";
 import env from "dotenv";
 import cors from "cors";
@@ -19,14 +19,37 @@ app.use(bodyParser.json());
 app.use(cors());
 app.use("/", express.static(path.resolve(__dirname, "../client")));
 
-// const authed = (token: string) => {
-//   return bcrypt.compareSync(token, process.env.BOT_TOKEN as string);
-// };
+const authed = (req: Request, res: Response, next: NextFunction) => {
+  if (
+    !bcrypt.compareSync(
+      req.headers.authorization ?? "",
+      process.env.BOT_TOKEN as string
+    )
+  )
+    return res.sendStatus(403);
+  next();
+};
+
+const transaction = (fn: (...args: any[]) => any) => {
+  return async (...args: any[]) => {
+    const session = await mongoose.startSession();
+    let result: any;
+    try {
+      session.startTransaction();
+      result = fn(...args);
+      await session.commitTransaction();
+    } catch (e) {
+      await session.abortTransaction();
+    } finally {
+      session.endSession();
+      return result;
+    }
+  };
+};
 
 app.get("/levels", async (req, res) => {
   const levels = await Level.find({ position: { $lte: 100 } })
     .lean()
-    .populate("points")
     .sort("position");
   return res.status(200).json(levels);
 });
@@ -94,8 +117,6 @@ app.get("/players", async (req, res) => {
 app.get("/players/:name", async (req, res) => {
   const player = await Player.findOne({ name: req.params.name })
     .lean()
-    .populate("hertz")
-    .populate("class")
     .populate("records", "level hertz link levelID");
   return player
     ? res.status(200).json(player)
