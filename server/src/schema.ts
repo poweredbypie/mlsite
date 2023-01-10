@@ -10,7 +10,7 @@ interface IRecord {
 }
 
 interface IRecordMethods {
-  cascadingDelete(): Promise<void>;
+  cascadingDelete(justOne?: number): Promise<void>;
 }
 
 interface RecordModel extends Model<IRecord, {}, IRecordMethods> {
@@ -83,18 +83,33 @@ const recordSchema = new Schema<IRecord, RecordModel, IRecordMethods>(
       },
     },
     methods: {
-      async cascadingDelete() {
-        await Player.findByIdAndUpdate(
-          this.playerID,
-          {
+      async cascadingDelete(justOne?: number) {
+        try {
+          const level = await Level.findByIdAndUpdate(this.levelID, {
             $pull: { records: this._id },
-          },
-          { new: true }
-        );
-        await Level.findByIdAndUpdate(this.levelID, {
-          $pull: { records: this._id },
-        });
-        await this.deleteOne();
+          });
+          if (justOne === 1) {
+            await Player.findByIdAndUpdate(
+              this.playerID,
+              {
+                $pull: { records: this._id },
+                $inc: { points: -(level?.points as number) },
+              },
+              { new: true }
+            );
+          } else {
+            await Player.findByIdAndUpdate(
+              this.playerID,
+              {
+                $pull: { records: this._id },
+              },
+              { new: true }
+            );
+          }
+          await this.deleteOne();
+        } catch (e) {
+          console.error(e);
+        }
       },
     },
   }
@@ -102,19 +117,23 @@ const recordSchema = new Schema<IRecord, RecordModel, IRecordMethods>(
 
 recordSchema.pre("save", async function () {
   try {
-    const player = await Player.findOneAndUpdate(
-      { name: this.player },
-      { $addToSet: { records: this._id } },
-      { new: true }
-    );
     const level = await Level.findOneAndUpdate(
       { name: this.level },
       { $addToSet: { records: this._id } },
       { new: true }
     );
-    this.playerID = player?._id;
-    this.levelID = level?._id;
-    await player?.updatePoints();
+    if (level === null) throw new Error("Level not found");
+    const player = await Player.findOneAndUpdate(
+      { name: this.player },
+      {
+        $addToSet: { records: this._id },
+        $inc: { points: level.points as number },
+      },
+      { new: true }
+    );
+    if (player === null) throw new Error("Player not found");
+    this.playerID = player._id;
+    this.levelID = level._id;
   } catch (e) {
     console.error(e);
   }
@@ -283,9 +302,9 @@ const playerSchema = new Schema<IPlayer, PlayerModel, IPlayerMethods>(
         );
       },
       async updatePoints() {
-        const levels = await this.getCompletedLevels();
+        const levels: LevelDocument[] = await this.getCompletedLevels();
         const points = levels
-          .map((l: LevelDocument) => l.points)
+          .map((l) => l.points)
           .reduce((a: number, b: number) => a + b, 0);
         this.points = points;
         await this.save();

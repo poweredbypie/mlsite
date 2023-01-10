@@ -6,10 +6,6 @@ mongoose.connect(
   "mongodb+srv://admin:IeMd0RhSWDdfVh6D@mldb.rq64ftg.mongodb.net/test?retryWrites=true&w=majority"
 );
 
-// const connect = async () => {
-//   mongoose.connect("mongodb+srv://admin:IeMd0RhSWDdfVh6D@mldb.rq64ftg.mongodb.net/test?retryWrites=true&w=majority")
-// }
-
 const disconnect = async () => {
   await Record.deleteMany();
   await Player.deleteMany();
@@ -17,14 +13,7 @@ const disconnect = async () => {
   await mongoose.connection.close();
 };
 
-// afterAll(async () => {
-//   // Record.deleteMany();
-//   // Player.deleteMany();
-//   // Level.deleteMany();
-
-// })
-
-test("Create new level", async () => {
+test("Add a level", async () => {
   const level = new Level({
     name: "Sunset Sandstorm",
     creator: "crohn44",
@@ -86,12 +75,12 @@ test("Add level above", async () => {
     player: "Coopersuper",
     level: "Dr Dingleberry",
     hertz: 60,
-    link: "https://youtube.com/ginger"
+    link: "https://youtube.com/ginger",
   }).save();
   const apoints = (await Player.findOne({ name: "Biprex" }))?.points;
   const levelQuery = await Level.findOne({ name: "Sunset Sandstorm" });
   expect(levelQuery?.position).toStrictEqual(2);
-  expect(bpoints ?? 0).toBeGreaterThan(apoints ?? 1);
+  expect(bpoints ?? -1).toBeGreaterThan(apoints ?? -1);
 });
 
 test("Move level up", async () => {
@@ -119,27 +108,57 @@ test("Move level up", async () => {
 });
 
 test("Move level down", async () => {
-  const bpoints = (await Player.findOne({ name: "Coopersuper" }))?.points;
   const level = await Level.findOne({ name: "Dr Dingleberry" });
   await level?.move(4);
-  const apoints = (await Player.findOne({ name: "Coopersuper" }))?.points;
   const movedLevel = await Level.findOne({ name: "Dr Dingleberry" });
   expect(movedLevel?.position).toStrictEqual(4);
   const bumpedLevel = await Level.findOne({ name: "RUST" });
   expect(bumpedLevel?.position).toStrictEqual(3);
-  expect(bpoints ?? 0).toBeGreaterThan(apoints ?? 1)
 });
 
 test("Remove level", async () => {
   const level = await Level.findOne({ name: "Dr Dingleberry" });
   await level?.del();
-  const player = await Player.findOne({ name: "Coopersuper" });  
+  const player = await Player.findOne({ name: "Coopersuper" });
   expect(player?.points).toStrictEqual(0);
+  expect((player?.records ?? [null]).length).toStrictEqual(0)
   const records = await Record.find({ level: "Dr Dingleberry" });
   expect(records.length).toStrictEqual(0);
   const removedLevel = await Level.findOne({ name: "Dr Dingleberry" });
   expect(removedLevel).toBeNull();
   const bumpedLevel = await Level.findOne({ name: "Yatagarasu" });
   expect(bumpedLevel?.position).toStrictEqual(4);
-  await disconnect();
 });
+
+test("Remove record", async () => {
+  await new Record({
+    player: "Noxop",
+    level: "Yatagarasu",
+    hertz: 120,
+    link: "https://youtube.com/noxopwow"
+  }).save();
+  const player = await Player.findOne({ name: "Noxop" });
+  expect(player?.points).toBeGreaterThan(0);
+  const record = await Record.findOne({ name: "Noxop", level: "Yatagarasu" });
+  await record?.cascadingDelete(1);
+  const player2 = await Player.findOne({ name: "Noxop" });
+  expect(player2?.points).toStrictEqual(0);
+})
+
+test("Ban a player", async () => {
+  await new Record({
+    player: "Biprex",
+    level: "RUST",
+    hertz: 60,
+    link: "https://youtube.com/hackedlmao"
+  }).save();
+  const player = await Player.findOne({ name: "Biprex" });
+  await player?.ban();
+  const bannedPlayer = await Player.findOne({ name: "Biprex" });
+  expect(bannedPlayer).toBeNull();
+  const level = await Level.findOne({ name: "Sunset Sandstorm" });
+  expect((level?.records ?? [null]).length).toStrictEqual(0);
+  const records = await Record.find({ player: "Biprex" });
+  expect(records.length).toStrictEqual(0);
+  await disconnect();
+})

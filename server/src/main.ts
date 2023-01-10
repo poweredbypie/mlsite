@@ -187,7 +187,7 @@ app.delete("/records", async (req, res) => {
     level: req.body.level as string,
   });
   if (record === null) return res.sendStatus(404);
-  record.cascadingDelete();
+  record.cascadingDelete(1);
   return res.sendStatus(200);
 });
 
