@@ -13,7 +13,7 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ name, mainRoutes, extraRoutes }: HeaderProps) => {
-  const mainTabs = ['About', 'Players', 'Submit Record']
+  const mainTabs = ['About', 'Leaderboard', 'Submit Record']
   const extraTabs = ['All Extremes', 'Level Packs', 'Update Log']
   const navigate = useNavigate()
 
