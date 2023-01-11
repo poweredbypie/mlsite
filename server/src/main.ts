@@ -2,11 +2,9 @@ import express, { Request, Response, NextFunction } from "express";
 import bodyParser from "body-parser";
 import env from "dotenv";
 import cors from "cors";
-import bcrypt from "bcrypt";
-import crypto from "crypto";
 import mongoose, { ClientSession } from "mongoose";
 import path from "path";
-import { Record, Level, Player } from "./schema.js";
+import { Record, Level, Player } from "./schema";
 
 env.config();
 
@@ -21,13 +19,13 @@ app.use("/", express.static(path.resolve(__dirname, "../client")));
 
 const authed = (req: Request, res: Response, next: NextFunction) => {
   if (
-    !bcrypt.compareSync(
-      req.headers.authorization ?? "",
-      process.env.BOT_TOKEN as string
-    )
-  )
+    req.headers.authorization &&
+    (req.headers.authorization ?? "" !== (process.env.BOT_TOKEN as string))
+  ) {
     return res.sendStatus(403);
-  next();
+  } else {
+    next();
+  }
 };
 
 const transaction = (
@@ -67,6 +65,7 @@ app.get("/levels/:name", async (req, res) => {
 
 app.post(
   "/levels",
+  authed,
   transaction(async (req, res, session) => {
     if (await Level.exists({ name: req.body.name as string })) throw 409;
     const level = new Level({
@@ -81,6 +80,7 @@ app.post(
 
 app.delete(
   "/levels/:name",
+  authed,
   transaction(async (req, res, session) => {
     const level = await Level.findOne({ name: req.params.name });
     if (level === null) throw 404;
@@ -91,6 +91,7 @@ app.delete(
 
 app.patch(
   "/levels/:name",
+  authed,
   transaction(async (req, res, session) => {
     if (req.body.newpos !== undefined) {
       const level = await Level.findOne({ name: req.params.name });
@@ -139,6 +140,7 @@ app.get("/players/:name", async (req, res) => {
 // needs auth
 app.post(
   "/players",
+  authed,
   transaction(async (req, res, session) => {
     if (await Player.exists({ name: req.body.name as string })) throw 409;
     const player = new Player({
@@ -153,6 +155,7 @@ app.post(
 
 app.delete(
   "/players/:name",
+  authed,
   transaction(async (req, res, session) => {
     const player = await Player.findOne({ name: req.params.name });
     if (player === null) throw 404;
@@ -163,6 +166,7 @@ app.delete(
 
 app.patch(
   "/players/:name",
+  authed,
   transaction(async (req, res, session) => {
     if (req.body.newname !== undefined) {
       const player = await Player.findOneAndUpdate(
@@ -187,6 +191,7 @@ app.patch(
 
 app.post(
   "/records",
+  authed,
   transaction(async (req, res, session) => {
     if (
       !(await Player.exists({ name: req.body.player as string })) ||
@@ -208,6 +213,7 @@ app.post(
 
 app.delete(
   "/records",
+  authed,
   transaction(async (req, res, session) => {
     if (req.body.player === undefined || req.body.level === undefined)
       throw 400;
@@ -222,7 +228,7 @@ app.delete(
 );
 
 try {
-  mongoose.connect(process.env.MONGODB_URI as string);
+  mongoose.connect(process.env.MONGODB_TEST_URI as string);
 } catch (error) {
   console.error(error);
 }

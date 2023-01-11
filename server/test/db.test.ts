@@ -1,5 +1,7 @@
+// I know how I'm testing this is HORRIBLE practice, but keep in mind this was only created for me to run while building the DB.
+// So just let me slide on this one.
+
 import { Record, Player, Level } from "../src/schema";
-import env from "dotenv";
 import mongoose, { ClientSession } from "mongoose";
 
 mongoose.connect(
@@ -220,6 +222,9 @@ test("Abort transaction", async () => {
   r.$session(session);
   await r.save();
   await session.abortTransaction();
-  const abortedRecord = await Record.findOne({ player: "Noxop", level: "RUST" });
+  const abortedRecord = await Record.findOne({
+    player: "Noxop",
+    level: "RUST",
+  });
   expect(abortedRecord).toBeNull();
-})
+});

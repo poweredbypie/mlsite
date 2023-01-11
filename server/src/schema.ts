@@ -113,20 +113,14 @@ const recordSchema = new Schema<IRecord, RecordModel, IRecordMethods>(
           $pull: { records: this._id },
         }).session(session);
         if (justOne === 1) {
-          await Player.findByIdAndUpdate(
-            this.playerID,
-            {
-              $pull: { records: this._id },
-              $inc: { points: -(level?.points as number) },
-            }
-          ).session(session);
+          await Player.findByIdAndUpdate(this.playerID, {
+            $pull: { records: this._id },
+            $inc: { points: -(level?.points as number) },
+          }).session(session);
         } else {
-          await Player.findByIdAndUpdate(
-            this.playerID,
-            {
-              $pull: { records: this._id },
-            }
-          ).session(session);
+          await Player.findByIdAndUpdate(this.playerID, {
+            $pull: { records: this._id },
+          }).session(session);
         }
         await this.deleteOne({ session: session });
       },
