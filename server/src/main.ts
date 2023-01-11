@@ -4,7 +4,7 @@ import env from "dotenv";
 import cors from "cors";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
-import mongoose from "mongoose";
+import mongoose, { ClientSession } from "mongoose";
 import path from "path";
 import { Record, Level, Player } from "./schema.js";
 
@@ -30,16 +30,20 @@ const authed = (req: Request, res: Response, next: NextFunction) => {
   next();
 };
 
-const transaction = (fn: (...args: any[]) => any) => {
-  return async (...args: any[]) => {
+const transaction = (
+  fn: (req: Request, res: Response, session: ClientSession) => Promise<number>
+) => {
+  return async (req: Request, res: Response) => {
     const session = await mongoose.startSession();
     let result: any;
     try {
       session.startTransaction();
-      result = fn(...args);
+      result = res.sendStatus(await fn(req, res, session));
       await session.commitTransaction();
-    } catch (e) {
+    } catch (code) {
       await session.abortTransaction();
+      result =
+        typeof code === "number" ? res.sendStatus(code) : res.sendStatus(500);
     } finally {
       session.endSession();
       return result;
@@ -61,50 +65,59 @@ app.get("/levels/:name", async (req, res) => {
   return res.status(200).json(level?.records);
 });
 
-app.post("/levels", async (req, res) => {
-  if (await Level.exists({ name: req.body.name as string }))
-    return res.sendStatus(409);
-  const level = new Level({
-    name: req.body.name as string,
-    creator: req.body.creator as string,
-    position: req.body.position as number,
-  });
-  level.add();
-  return res.sendStatus(201);
-});
+app.post(
+  "/levels",
+  transaction(async (req, res, session) => {
+    if (await Level.exists({ name: req.body.name as string })) throw 409;
+    const level = new Level({
+      name: req.body.name as string,
+      creator: req.body.creator as string,
+      position: req.body.position as number,
+    });
+    await level.add(session);
+    return 201;
+  })
+);
 
-app.delete("/levels/:name", async (req, res) => {
-  const level = await Level.findOne({ name: req.params.name });
-  if (level === null) return res.sendStatus(404);
-  level.del();
-  return res.sendStatus(200);
-});
-
-app.patch("/levels/:name", async (req, res) => {
-  if (req.body.newpos !== undefined) {
+app.delete(
+  "/levels/:name",
+  transaction(async (req, res, session) => {
     const level = await Level.findOne({ name: req.params.name });
-    if (level === null) return res.sendStatus(404);
-    level.move(req.body.newpos as number);
-    return res.sendStatus(200);
-  }
-  if (req.body.newname !== undefined) {
-    const level = await Level.findOneAndUpdate(
-      { name: req.params.name },
-      { $set: { name: req.body.newname as string } }
-    );
-    if (level === null) return res.sendStatus(404);
-    Record.levelNameUpdate(level._id, req.body.newname);
-    return res.sendStatus(200);
-  }
-  if (req.body.newcreator !== undefined) {
-    const level = await Level.findOneAndUpdate(
-      { name: req.params.name },
-      { $set: { creator: req.body.newcreator as string } }
-    );
-    return level ? res.sendStatus(200) : res.sendStatus(404);
-  }
-  return res.sendStatus(400);
-});
+    if (level === null) throw 404;
+    level.del(session);
+    return 200;
+  })
+);
+
+app.patch(
+  "/levels/:name",
+  transaction(async (req, res, session) => {
+    if (req.body.newpos !== undefined) {
+      const level = await Level.findOne({ name: req.params.name });
+      if (level === null) throw 404;
+      await level.move(session, req.body.newpos as number);
+      return 200;
+    }
+    if (req.body.newname !== undefined) {
+      const level = await Level.findOneAndUpdate(
+        { name: req.params.name },
+        { $set: { name: req.body.newname as string } }
+      ).session(session);
+      if (level === null) throw 404;
+      await Record.levelNameUpdate(session, level._id, req.body.newname);
+      return 200;
+    }
+    if (req.body.newcreator !== undefined) {
+      const level = await Level.findOneAndUpdate(
+        { name: req.params.name },
+        { $set: { creator: req.body.newcreator as string } }
+      ).session(session);
+      if (level === null) throw 404;
+      return 200;
+    }
+    throw 400;
+  })
+);
 
 app.get("/players", async (req, res) => {
   const players = await Player.find({ points: { $gt: 0 } })
@@ -124,72 +137,89 @@ app.get("/players/:name", async (req, res) => {
 });
 
 // needs auth
-app.post("/players", async (req, res) => {
-  if (await Player.exists({ name: req.body.name as string }))
-    return res.sendStatus(409);
-  const player = new Player({
-    name: req.body.name as string,
-    points: 0,
-  });
-  player.save();
-  return res.sendStatus(201);
-});
+app.post(
+  "/players",
+  transaction(async (req, res, session) => {
+    if (await Player.exists({ name: req.body.name as string })) throw 409;
+    const player = new Player({
+      name: req.body.name as string,
+      points: 0,
+    });
+    player.$session(session);
+    await player.save();
+    return 201;
+  })
+);
 
-app.delete("/players/:name", async (req, res) => {
-  const player = await Player.findOne({ name: req.params.name });
-  if (player === null) return res.sendStatus(404);
-  player.ban();
-  return res.sendStatus(200);
-});
+app.delete(
+  "/players/:name",
+  transaction(async (req, res, session) => {
+    const player = await Player.findOne({ name: req.params.name });
+    if (player === null) throw 404;
+    await player.ban(session);
+    return 200;
+  })
+);
 
-app.patch("/players/:name", async (req, res) => {
-  if (req.body.newname !== undefined) {
-    const player = await Player.findOneAndUpdate(
-      { name: req.params.name },
-      { $set: { name: req.body.newname as string } }
-    );
-    if (player === null) return res.sendStatus(404);
-    Record.playerNameUpdate(player._id, req.body.newname);
-    return res.sendStatus(200);
-  }
-  if (req.body.newdiscord !== undefined) {
-    const player = await Player.findOneAndUpdate(
-      { name: req.params.name },
-      { $set: { discord: req.body.newdiscord as number } }
-    );
-    return player ? res.sendStatus(200) : res.sendStatus(404);
-  }
-});
+app.patch(
+  "/players/:name",
+  transaction(async (req, res, session) => {
+    if (req.body.newname !== undefined) {
+      const player = await Player.findOneAndUpdate(
+        { name: req.params.name },
+        { $set: { name: req.body.newname as string } }
+      ).session(session);
+      if (player === null) throw 404;
+      await Record.playerNameUpdate(session, player._id, req.body.newname);
+      return 200;
+    }
+    if (req.body.newdiscord !== undefined) {
+      const player = await Player.findOneAndUpdate(
+        { name: req.params.name },
+        { $set: { discord: req.body.newdiscord as number } }
+      ).session(session);
+      if (player === null) throw 404;
+      return 200;
+    }
+    throw 400;
+  })
+);
 
-app.post("/records", async (req, res) => {
-  if (
-    !(await Player.exists({ name: req.body.player as string })) ||
-    !(await Level.exists({ name: req.body.level as string }))
-  )
-    return res.sendStatus(404);
-  if (req.body.hertz === undefined || req.body.link === undefined)
-    return res.sendStatus(400);
-  const record = new Record({
-    player: req.body.player as string,
-    level: req.body.level as string,
-    hertz: req.body.hertz as number,
-    link: req.body.link as string,
-  });
-  record.save();
-  return res.sendStatus(201);
-});
+app.post(
+  "/records",
+  transaction(async (req, res, session) => {
+    if (
+      !(await Player.exists({ name: req.body.player as string })) ||
+      !(await Level.exists({ name: req.body.level as string }))
+    )
+      throw 404;
+    if (req.body.hertz === undefined || req.body.link === undefined) throw 400;
+    const record = new Record({
+      player: req.body.player as string,
+      level: req.body.level as string,
+      hertz: req.body.hertz as number,
+      link: req.body.link as string,
+    });
+    record.$session(session);
+    await record.save();
+    return 201;
+  })
+);
 
-app.delete("/records", async (req, res) => {
-  if (req.body.player === undefined || req.body.level === undefined)
-    return res.sendStatus(400);
-  const record = await Record.findOne({
-    player: req.body.player as string,
-    level: req.body.level as string,
-  });
-  if (record === null) return res.sendStatus(404);
-  record.cascadingDelete(1);
-  return res.sendStatus(200);
-});
+app.delete(
+  "/records",
+  transaction(async (req, res, session) => {
+    if (req.body.player === undefined || req.body.level === undefined)
+      throw 400;
+    const record = await Record.findOne({
+      player: req.body.player as string,
+      level: req.body.level as string,
+    });
+    if (record === null) throw 404;
+    await record.cascadingDelete(session, 1);
+    return 200;
+  })
+);
 
 try {
   mongoose.connect(process.env.MONGODB_URI as string);

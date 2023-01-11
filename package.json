@@ -13,7 +13,7 @@
     "start": "node dist/server/bundle.js",
     "dev": "nodemon --config client/nodemon.json",
     "prettier": "npx prettier server/src --write && npx prettier client/src --write && npx prettier server/test --write",
-    "test": "jest ./server --env=node --runInBand --detectOpenHandles -i --verbose"
+    "test": "jest ./server --env=node --detectOpenHandles -i --verbose"
   },
   "devDependencies": {
     "@reduxjs/toolkit": "^1.9.0",

@@ -1,4 +1,4 @@
-import { Schema, model, Types, Model, Document, PopulatedDoc } from "mongoose";
+import { Schema, model, Types, Model, Document, ClientSession } from "mongoose";
 
 interface IRecord {
   player: string;
@@ -10,12 +10,20 @@ interface IRecord {
 }
 
 interface IRecordMethods {
-  cascadingDelete(justOne?: number): Promise<void>;
+  cascadingDelete(session: ClientSession, justOne?: number): Promise<void>;
 }
 
 interface RecordModel extends Model<IRecord, {}, IRecordMethods> {
-  playerNameUpdate(id: Types.ObjectId, newname: string): Promise<void>;
-  levelNameUpdate(id: Types.ObjectId, newname: string): Promise<void>;
+  playerNameUpdate(
+    session: ClientSession,
+    id: Types.ObjectId,
+    newname: string
+  ): Promise<void>;
+  levelNameUpdate(
+    session: ClientSession,
+    id: Types.ObjectId,
+    newname: string
+  ): Promise<void>;
 }
 
 type RecordDocument = Document<unknown, any, IRecord> &
@@ -30,9 +38,9 @@ interface ILevel {
 }
 
 interface ILevelMethods {
-  add(): Promise<void>;
-  del(): Promise<void>;
-  move(pos: number): Promise<void>;
+  add(session: ClientSession): Promise<void>;
+  del(session: ClientSession): Promise<void>;
+  move(session: ClientSession, pos: number): Promise<void>;
 }
 
 interface LevelModel extends Model<ILevel, {}, ILevelMethods> {
@@ -53,12 +61,15 @@ interface IPlayer {
 
 interface IPlayerMethods {
   getCompletedLevels(): Promise<LevelDocument[]>;
-  updatePoints(): Promise<void>;
-  ban(): Promise<void>;
+  updatePoints(session: ClientSession): Promise<void>;
+  ban(session: ClientSession): Promise<void>;
 }
 
 interface PlayerModel extends Model<IPlayer, {}, IPlayerMethods> {
-  updateAllPoints(lp: [Types.ObjectId, number][]): Promise<void>;
+  updateAllPoints(
+    session: ClientSession,
+    lp: [Types.ObjectId, number][]
+  ): Promise<void>;
 }
 
 type PlayerDocument = Document<unknown, any, IPlayer> &
@@ -75,68 +86,73 @@ const recordSchema = new Schema<IRecord, RecordModel, IRecordMethods>(
   },
   {
     statics: {
-      async playerNameUpdate(id: Types.ObjectId, newname: string) {
-        await this.updateMany({ playerID: id }, { $set: { player: newname } });
+      async playerNameUpdate(
+        session: ClientSession,
+        id: Types.ObjectId,
+        newname: string
+      ) {
+        await this.updateMany(
+          { playerID: id },
+          { $set: { player: newname } }
+        ).session(session);
       },
-      async levelNameUpdate(id: Types.ObjectId, newname: string) {
-        await this.updateMany({ levelID: id }, { $set: { level: newname } });
+      async levelNameUpdate(
+        session: ClientSession,
+        id: Types.ObjectId,
+        newname: string
+      ) {
+        await this.updateMany(
+          { levelID: id },
+          { $set: { level: newname } }
+        ).session(session);
       },
     },
     methods: {
-      async cascadingDelete(justOne?: number) {
-        try {
-          const level = await Level.findByIdAndUpdate(this.levelID, {
-            $pull: { records: this._id },
-          });
-          if (justOne === 1) {
-            await Player.findByIdAndUpdate(
-              this.playerID,
-              {
-                $pull: { records: this._id },
-                $inc: { points: -(level?.points as number) },
-              },
-              { new: true }
-            );
-          } else {
-            await Player.findByIdAndUpdate(
-              this.playerID,
-              {
-                $pull: { records: this._id },
-              },
-              { new: true }
-            );
-          }
-          await this.deleteOne();
-        } catch (e) {
-          console.error(e);
+      async cascadingDelete(session: ClientSession, justOne?: number) {
+        const level = await Level.findByIdAndUpdate(this.levelID, {
+          $pull: { records: this._id },
+        }).session(session);
+        if (justOne === 1) {
+          await Player.findByIdAndUpdate(
+            this.playerID,
+            {
+              $pull: { records: this._id },
+              $inc: { points: -(level?.points as number) },
+            }
+          ).session(session);
+        } else {
+          await Player.findByIdAndUpdate(
+            this.playerID,
+            {
+              $pull: { records: this._id },
+            }
+          ).session(session);
         }
+        await this.deleteOne({ session: session });
       },
     },
   }
 );
 
 recordSchema.pre("save", async function () {
-  try {
-    const level = await Level.findOneAndUpdate(
-      { name: this.level },
-      { $addToSet: { records: this._id } },
-      { new: true }
-    );
-    if (level === null) throw new Error("Level not found");
-    const player = await Player.findOneAndUpdate(
-      { name: this.player },
-      {
-        $addToSet: { records: this._id },
-        $inc: { points: level.points as number },
-      },
-      { new: true }
-    );
-    if (player === null) throw new Error("Player not found");
-    this.playerID = player._id;
-    this.levelID = level._id;
-  } catch (e) {
-    console.error(e);
-  }
+  const session = this.$session();
+  const level = await Level.findOneAndUpdate(
+    { name: this.level },
+    { $addToSet: { records: this._id } },
+    { new: true }
+  ).session(session as ClientSession);
+  if (level === null) throw new Error("Level not found");
+  const player = await Player.findOneAndUpdate(
+    { name: this.player },
+    {
+      $addToSet: { records: this._id },
+      $inc: { points: level.points as number },
+    },
+    { new: true }
+  ).session(session as ClientSession);
+  if (player === null) throw new Error("Player not found");
+  this.playerID = player._id;
+  this.levelID = level._id;
 });
 
 const levelSchema = new Schema<ILevel, LevelModel, ILevelMethods>(
@@ -161,84 +177,68 @@ const levelSchema = new Schema<ILevel, LevelModel, ILevelMethods>(
     },
     statics: {
       async levelPoints() {
-        try {
-          const levels = await this.find({ position: { $lte: 100 } });
-          return levels.map((l) => [l._id, l.points]);
-        } catch (e) {
-          console.error(e);
-        }
+        const levels = await this.find({ position: { $lte: 100 } });
+        return levels.map((l) => [l._id, l.points]);
       },
     },
     methods: {
-      async add() {
-        try {
+      async add(session: ClientSession) {
+        await Level.updateMany(
+          { position: { $gte: this.position } },
+          { $inc: { position: 1 } }
+        ).session(session);
+        this.$session(session);
+        await this.save();
+      },
+      async del(session: ClientSession) {
+        await Level.updateMany(
+          { position: { $gt: this.position } },
+          { $inc: { position: -1 } }
+        ).session(session);
+        await this.populate("records");
+        await this.records.forEach((r: RecordDocument) =>
+          r.cascadingDelete(session)
+        );
+        await this.deleteOne({ session: session });
+        const lp = await Level.levelPoints();
+        await Player.updateAllPoints(session, lp);
+      },
+      async move(session: ClientSession, pos: number) {
+        if (this.position > pos) {
           await Level.updateMany(
-            { position: { $gte: this.position } },
+            {
+              $and: [
+                { position: { $gte: pos } },
+                { position: { $lt: this.position } },
+              ],
+            },
             { $inc: { position: 1 } }
-          );
-          await this.save();
-        } catch (e) {
-          console.error(e);
-        }
-      },
-      async del() {
-        try {
+          ).session(session);
+        } else if (this.position < pos) {
           await Level.updateMany(
-            { position: { $gt: this.position } },
+            {
+              $and: [
+                { position: { $lte: pos } },
+                { position: { $gt: this.position } },
+              ],
+            },
             { $inc: { position: -1 } }
-          );
-          await this.populate("records");
-          await this.records.forEach((r: RecordDocument) =>
-            r.cascadingDelete()
-          );
-          await this.deleteOne();
-          const lp = await Level.levelPoints();
-          await Player.updateAllPoints(lp);
-        } catch (e) {
-          console.error(e);
+          ).session(session);
         }
-      },
-      async move(pos: number) {
-        try {
-          if (this.position > pos) {
-            await Level.updateMany(
-              {
-                $and: [
-                  { position: { $gte: pos } },
-                  { position: { $lt: this.position } },
-                ],
-              },
-              { $inc: { position: 1 } }
-            );
-          } else if (this.position < pos) {
-            await Level.updateMany(
-              {
-                $and: [
-                  { position: { $lte: pos } },
-                  { position: { $gt: this.position } },
-                ],
-              },
-              { $inc: { position: -1 } }
-            );
-          }
-          await Level.findByIdAndUpdate(this._id, { $set: { position: pos } });
-          const lp = await Level.levelPoints();
-          await Player.updateAllPoints(lp);
-        } catch (e) {
-          console.error(e);
-        }
+        await Level.findByIdAndUpdate(this._id, {
+          $set: { position: pos },
+        }).session(session);
+        const lp = await Level.levelPoints();
+        await Player.updateAllPoints(session, lp);
       },
     },
   }
 );
 
 levelSchema.pre("save", async function () {
-  try {
-    const lp = await Level.levelPoints();
-    await Player.updateAllPoints(lp);
-  } catch (e) {
-    console.error(e);
-  }
+  const session = this.$session();
+  const lp = await Level.levelPoints();
+  await Player.updateAllPoints(session as ClientSession, lp);
 });
 
 const playerSchema = new Schema<IPlayer, PlayerModel, IPlayerMethods>(
@@ -280,7 +280,10 @@ const playerSchema = new Schema<IPlayer, PlayerModel, IPlayerMethods>(
       },
     },
     statics: {
-      async updateAllPoints(lp: [Types.ObjectId, number][]) {
+      async updateAllPoints(
+        session: ClientSession,
+        lp: [Types.ObjectId, number][]
+      ) {
         const players: PlayerDocument[] = await this.find();
         for (let p of players) {
           const levelIDs = await p
@@ -290,6 +293,8 @@ const playerSchema = new Schema<IPlayer, PlayerModel, IPlayerMethods>(
             .filter((e) => levelIDs.includes(e[0]))
             .reduce((a, b) => a + b[1], 0);
           p.points = points;
+          if (p === null) throw 500;
+          p.$session(session);
           await p.save();
         }
       },
@@ -301,24 +306,21 @@ const playerSchema = new Schema<IPlayer, PlayerModel, IPlayerMethods>(
           Level.findById(r.levelID)
         );
       },
-      async updatePoints() {
+      async updatePoints(session: ClientSession) {
         const levels: LevelDocument[] = await this.getCompletedLevels();
         const points = levels
           .map((l) => l.points)
           .reduce((a: number, b: number) => a + b, 0);
         this.points = points;
+        this.$session(session);
         await this.save();
       },
-      async ban() {
-        try {
-          await this.populate("records");
-          await this.records.forEach((r: RecordDocument) =>
-            r.cascadingDelete()
-          );
-          await this.deleteOne();
-        } catch (e) {
-          console.error(e);
+      async ban(session: ClientSession) {
+        await this.populate("records");
+        for (let r of this.records) {
+          await r.cascadingDelete(session);
         }
+        await this.deleteOne({ session: session });
       },
     },
   }
