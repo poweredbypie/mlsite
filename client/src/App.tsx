@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { Routes, Route, HashRouter } from 'react-router-dom'
 import './style.css'
 
+import { getLevel, getLevels, getPlayer, getPlayers } from './util/withApi'
 import Header from './components/Header'
 import List from './views/List'
 

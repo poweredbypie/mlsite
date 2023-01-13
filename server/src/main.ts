@@ -18,10 +18,7 @@ app.use(cors());
 app.use("/", express.static(path.resolve(__dirname, "../client")));
 
 const authed = (req: Request, res: Response, next: NextFunction) => {
-  if (
-    req.headers.authorization &&
-    (req.headers.authorization ?? "" !== (process.env.BOT_TOKEN as string))
-  ) {
+  if (!(req.headers.auth ?? "" === (process.env.BOT_TOKEN as string))) {
     return res.sendStatus(403);
   } else {
     next();
@@ -43,7 +40,7 @@ const transaction = (
       result =
         typeof code === "number" ? res.sendStatus(code) : res.sendStatus(500);
     } finally {
-      session.endSession();
+      await session.endSession();
       return result;
     }
   };
@@ -84,7 +81,7 @@ app.delete(
   transaction(async (req, res, session) => {
     const level = await Level.findOne({ name: req.params.name });
     if (level === null) throw 404;
-    level.del(session);
+    await level.del(session);
     return 200;
   })
 );
@@ -137,7 +134,6 @@ app.get("/players/:name", async (req, res) => {
     : res.status(404).send("Player not found.");
 });
 
-// needs auth
 app.post(
   "/players",
   authed,
@@ -146,6 +142,8 @@ app.post(
     const player = new Player({
       name: req.body.name as string,
       points: 0,
+      discord:
+        req.body.discord === null ? undefined : (req.body.discord as string),
     });
     player.$session(session);
     await player.save();
@@ -180,7 +178,7 @@ app.patch(
     if (req.body.newdiscord !== undefined) {
       const player = await Player.findOneAndUpdate(
         { name: req.params.name },
-        { $set: { discord: req.body.newdiscord as number } }
+        { $set: { discord: req.body.newdiscord as string } }
       ).session(session);
       if (player === null) throw 404;
       return 200;

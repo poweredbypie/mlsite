@@ -53,7 +53,7 @@ type LevelDocument = Document<unknown, any, ILevel> &
 interface IPlayer {
   name: string;
   points: number;
-  discord?: number;
+  discord?: string;
   records?: Types.ObjectId[];
   hertz?: { [rr: number]: number };
   class?: string;
@@ -239,7 +239,7 @@ const playerSchema = new Schema<IPlayer, PlayerModel, IPlayerMethods>(
   {
     name: { type: String, required: true },
     points: { type: Number, required: true, default: 0 },
-    discord: { type: Number },
+    discord: { type: String },
     records: [{ type: Schema.Types.ObjectId, ref: "Record" }],
   },
   {
