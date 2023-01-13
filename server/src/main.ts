@@ -38,7 +38,7 @@ const transaction = (
     } catch (code) {
       await session.abortTransaction();
       result =
-        typeof code === "number" ? res.sendStatus(code) : res.sendStatus(500);
+        typeof code === "number" ? res.sendStatus(code) : console.log(code);
     } finally {
       await session.endSession();
       return result;

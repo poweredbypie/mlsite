@@ -43,9 +43,7 @@ interface ILevelMethods {
   move(session: ClientSession, pos: number): Promise<void>;
 }
 
-interface LevelModel extends Model<ILevel, {}, ILevelMethods> {
-  levelPoints(): Promise<[Types.ObjectId, number][]>;
-}
+type LevelModel = Model<ILevel, {}, ILevelMethods>;
 
 type LevelDocument = Document<unknown, any, ILevel> &
   ILevel & { _id: Types.ObjectId } & ILevelMethods;
@@ -66,14 +64,15 @@ interface IPlayerMethods {
 }
 
 interface PlayerModel extends Model<IPlayer, {}, IPlayerMethods> {
-  updateAllPoints(
-    session: ClientSession,
-    lp: [Types.ObjectId, number][]
-  ): Promise<void>;
+  updateAllPoints(session: ClientSession): Promise<void>;
 }
 
 type PlayerDocument = Document<unknown, any, IPlayer> &
   IPlayer & { _id: Types.ObjectId } & IPlayerMethods;
+
+interface LP {
+  [levelID: string]: number;
+}
 
 const recordSchema = new Schema<IRecord, RecordModel, IRecordMethods>(
   {
@@ -112,16 +111,10 @@ const recordSchema = new Schema<IRecord, RecordModel, IRecordMethods>(
         const level = await Level.findByIdAndUpdate(this.levelID, {
           $pull: { records: this._id },
         }).session(session);
-        if (justOne === 1) {
-          await Player.findByIdAndUpdate(this.playerID, {
-            $pull: { records: this._id },
-            $inc: { points: -(level?.points as number) },
-          }).session(session);
-        } else {
-          await Player.findByIdAndUpdate(this.playerID, {
-            $pull: { records: this._id },
-          }).session(session);
-        }
+        await Player.findByIdAndUpdate(this.playerID, {
+          $pull: { records: this._id },
+          $inc: { points: justOne === 1 ? -(level?.points as number) : 0 },
+        }).session(session);
         await this.deleteOne({ session: session });
       },
     },
@@ -171,8 +164,13 @@ const levelSchema = new Schema<ILevel, LevelModel, ILevelMethods>(
     },
     statics: {
       async levelPoints() {
-        const levels = await this.find({ position: { $lte: 100 } });
-        return levels.map((l) => [l._id, l.points]);
+        const levels: LevelDocument[] = await this.find({
+          position: { $lte: 100 },
+        });
+        return Object.assign(
+          {},
+          ...levels.map((l) => ({ [l._id.toString()]: l.points }))
+        );
       },
     },
     methods: {
@@ -182,6 +180,7 @@ const levelSchema = new Schema<ILevel, LevelModel, ILevelMethods>(
           { $inc: { position: 1 } }
         ).session(session);
         this.$session(session);
+        await Player.updateAllPoints(session);
         await this.save();
       },
       async del(session: ClientSession) {
@@ -190,12 +189,11 @@ const levelSchema = new Schema<ILevel, LevelModel, ILevelMethods>(
           { $inc: { position: -1 } }
         ).session(session);
         await this.populate("records");
-        await this.records.forEach((r: RecordDocument) =>
-          r.cascadingDelete(session)
-        );
+        for (const r of this.records) {
+          await (r as RecordDocument).cascadingDelete(session);
+        }
         await this.deleteOne({ session: session });
-        const lp = await Level.levelPoints();
-        await Player.updateAllPoints(session, lp);
+        await Player.updateAllPoints(session);
       },
       async move(session: ClientSession, pos: number) {
         if (this.position > pos) {
@@ -222,18 +220,11 @@ const levelSchema = new Schema<ILevel, LevelModel, ILevelMethods>(
         await Level.findByIdAndUpdate(this._id, {
           $set: { position: pos },
         }).session(session);
-        const lp = await Level.levelPoints();
-        await Player.updateAllPoints(session, lp);
+        await Player.updateAllPoints(session);
       },
     },
   }
 );
-
-levelSchema.pre("save", async function () {
-  const session = this.$session();
-  const lp = await Level.levelPoints();
-  await Player.updateAllPoints(session as ClientSession, lp);
-});
 
 const playerSchema = new Schema<IPlayer, PlayerModel, IPlayerMethods>(
   {
@@ -274,18 +265,21 @@ const playerSchema = new Schema<IPlayer, PlayerModel, IPlayerMethods>(
       },
     },
     statics: {
-      async updateAllPoints(
-        session: ClientSession,
-        lp: [Types.ObjectId, number][]
-      ) {
-        const players: PlayerDocument[] = await this.find();
-        for (let p of players) {
-          const levelIDs = await p
-            .getCompletedLevels()
-            .then((levels) => levels.map((l) => l._id));
-          const points = lp
-            .filter((e) => levelIDs.includes(e[0]))
-            .reduce((a, b) => a + b[1], 0);
+      async updateAllPoints(session: ClientSession) {
+        const levels = await Level.find({
+          position: { $lte: 100 },
+        }, {}, { session: session });
+        const lp: LP = Object.assign(
+          {},
+          ...levels.map((l) => ({ [l.id]: l.points as number }))
+        );
+        const players: PlayerDocument[] = await this.find({},{},{ session: session });
+        for (const p of players) {
+          const levelIDs = await p.getCompletedLevels()
+            .then((levels) => levels.map((l) => l.id))
+          const points = levelIDs
+            .map((id) => lp[id] ?? 0)
+            .reduce((a, b) => a + b, 0);
           p.points = points;
           if (p === null) throw 500;
           p.$session(session);
@@ -296,9 +290,11 @@ const playerSchema = new Schema<IPlayer, PlayerModel, IPlayerMethods>(
     methods: {
       async getCompletedLevels() {
         await this.populate("records", "levelID");
-        return this.records.map((r: RecordDocument) =>
-          Level.findById(r.levelID)
-        );
+        var levels = []
+        for (const r of this.records) {
+          levels.push(await Level.findById(r.levelID))
+        }
+        return levels
       },
       async updatePoints(session: ClientSession) {
         const levels: LevelDocument[] = await this.getCompletedLevels();
