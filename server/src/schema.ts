@@ -1,4 +1,12 @@
-import { Schema, model, Types, Model, Document, ClientSession } from "mongoose";
+import mongoose, {
+  Schema,
+  model,
+  Types,
+  Model,
+  Document,
+  ClientSession,
+} from "mongoose";
+import { mongooseLeanVirtuals } from "mongoose-lean-virtuals";
 
 interface IRecord {
   player: string;
@@ -33,7 +41,7 @@ interface ILevel {
   name: string;
   creator: string;
   position: number;
-  records?: Types.ObjectId[];
+  records?: Types.ObjectId[] | RecordDocument[];
   points?: number;
 }
 
@@ -52,9 +60,9 @@ interface IPlayer {
   name: string;
   points: number;
   discord?: string;
-  records?: Types.ObjectId[];
+  records?: Types.ObjectId[] | RecordDocument[];
   hertz?: { [rr: number]: number };
-  class?: string;
+  mclass?: string;
 }
 
 interface IPlayerMethods {
@@ -73,6 +81,8 @@ type PlayerDocument = Document<unknown, any, IPlayer> &
 interface LP {
   [levelID: string]: number;
 }
+
+mongoose.plugin(mongooseLeanVirtuals);
 
 const recordSchema = new Schema<IRecord, RecordModel, IRecordMethods>(
   {
@@ -157,7 +167,7 @@ const levelSchema = new Schema<ILevel, LevelModel, ILevelMethods>(
       points: {
         get() {
           return this.position <= 100
-            ? 2250 / (0.37 * this.position + 9) - 40
+            ? 2250 / (0.37 * this.position + 9) - 40.12
             : 0;
         },
       },
@@ -239,17 +249,15 @@ const playerSchema = new Schema<IPlayer, PlayerModel, IPlayerMethods>(
     toObject: { virtuals: true },
     virtuals: {
       hertz: {
-        async get() {
-          await this.populate("records", "hertz");
+        get() {
           let rrs: { [rr: number]: number } = {};
-          for (let r of this.records) {
+          for (const r of this.records as RecordDocument[]) {
             rrs[r.hertz] = (rrs[r.hertz] || 0) + 1;
           }
-          this.depopulate();
           return rrs;
         },
       },
-      class: {
+      mclass: {
         get() {
           const classes = [
             [1, "Legacy"],
@@ -266,17 +274,26 @@ const playerSchema = new Schema<IPlayer, PlayerModel, IPlayerMethods>(
     },
     statics: {
       async updateAllPoints(session: ClientSession) {
-        const levels = await Level.find({
-          position: { $lte: 100 },
-        }, {}, { session: session });
+        const levels = await Level.find(
+          {
+            position: { $lte: 100 },
+          },
+          {},
+          { session: session }
+        );
         const lp: LP = Object.assign(
           {},
           ...levels.map((l) => ({ [l.id]: l.points as number }))
         );
-        const players: PlayerDocument[] = await this.find({},{},{ session: session });
+        const players: PlayerDocument[] = await this.find(
+          {},
+          {},
+          { session: session }
+        );
         for (const p of players) {
-          const levelIDs = await p.getCompletedLevels()
-            .then((levels) => levels.map((l) => l.id))
+          const levelIDs = await p
+            .getCompletedLevels()
+            .then((levels) => levels.map((l) => l.id));
           const points = levelIDs
             .map((id) => lp[id] ?? 0)
             .reduce((a, b) => a + b, 0);
@@ -290,11 +307,11 @@ const playerSchema = new Schema<IPlayer, PlayerModel, IPlayerMethods>(
     methods: {
       async getCompletedLevels() {
         await this.populate("records", "levelID");
-        var levels = []
+        var levels = [];
         for (const r of this.records) {
-          levels.push(await Level.findById(r.levelID))
+          levels.push(await Level.findById(r.levelID));
         }
-        return levels
+        return levels;
       },
       async updatePoints(session: ClientSession) {
         const levels: LevelDocument[] = await this.getCompletedLevels();

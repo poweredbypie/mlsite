@@ -1,43 +1,35 @@
 import React, { useState } from 'react'
-import { Row, Col, Accordion, Button } from 'react-bootstrap'
+import { APIManyLevel } from '../util/withApi'
 
-interface LevelProps {
-  n: number
-  name: string
-  creator: string
-  points: number
-  records: [Record<any, any>]
+interface LevelProps extends APIManyLevel {
+  onSelect: () => void
 }
 
-const Level: React.FC<LevelProps> = ({ n, name, creator, points, records }: LevelProps) => {
-  const [open, setOpen] = useState(false)
+const Level: React.FC<LevelProps> = (props: LevelProps) => {
+  const { name, creator, position, onSelect } = props
 
   return (
-    <Accordion>
-      <Accordion.Item eventKey='0'>
-        <Accordion.Header>
-          <strong>
-            {n}. &ldquo;{name}&rdquo; by {creator}
-          </strong>
-          &nbsp;<em>&#40;{points} points&#41;</em>
-        </Accordion.Header>
-        <Accordion.Body>
-          <div id='level-records'>
-            <ul>
-              {records.map((e) => (
-                <li>
-                  {e.name} -{' '}
-                  <a href={e.link} target={'_blank'}>
-                    {e.link}
-                  </a>
-                  &nbsp;<i>&#40;{e.hertz}hz&#41;</i>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </Accordion.Body>
-      </Accordion.Item>
-    </Accordion>
+    <>
+      <div
+        tabIndex={0}
+        className='rounded-box grid cursor-pointer border border-base-300 bg-gradient-to-r from-[#f5f7f9] to-[#d9dfe8] p-12 shadow-lg hover:shadow-2xl'
+        onClick={onSelect}
+      >
+        <div className='text-xl'>
+          <p>
+            <strong>
+              {position}. &ldquo;{name}&rdquo;
+            </strong>
+          </p>
+          <p className='text-base text-secondary-content'>
+            <em>{creator}</em>
+          </p>
+
+          {/* &nbsp;<em>&#40;{Math.round(100 * points) / 100} points&#41;</em> */}
+        </div>
+      </div>
+      <br />
+    </>
   )
 }
 

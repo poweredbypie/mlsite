@@ -1,95 +1,32 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Container } from 'react-bootstrap'
+import { getLevels, APIManyLevel, APIOneLevel } from '../util/withApi'
 import Level from '../components/Level'
-
-interface APILevel {
-  name: string
-  creators: string
-  records: [
-    {
-      name: string
-      link: string
-      hertz: number
-    },
-  ]
-}
+import ListInfoBox from '../components/ListInfoBox'
 
 const List: React.FC = () => {
-  const [levels, setLevels] = useState<Array<APILevel>>([])
+  let [levels, setLevels] = useState<Array<APIManyLevel>>([])
+  let [selectedLevelName, setSelectedLevelName] = useState<string>(undefined)
   useEffect(() => {
-    const api = async () => {
-      let data = await fetch('/levels')
-      let json: APILevel[] = await data.json()
-      setLevels(json)
-    }
-    api()
+    getLevels().then((l) => setLevels(l))
   }, [])
-
-  let rows: any = []
-  for (let i = 0; i < levels.length; i++) {
-    let points: number = 2250 / (0.37 * (i + 1) + 9) - 40
-    rows.push(
-      <Level
-        n={i + 1}
-        name={levels[i].name}
-        creator={levels[i].creators}
-        points={Math.round(100 * points) / 100}
-        records={levels[i].records}
-      />,
-    )
-    rows.push(<br></br>)
-  }
-
   return (
-    <Container>
-      <br></br>
-      {rows}
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
-    </Container>
+    <div className='fixed -z-50 h-screen w-full bg-[radial-gradient(ellipse_at_bottom,_var(--tw-gradient-stops))] from-blue-100 via-blue-300 to-blue-500'>
+      <div className='rounded-box flex w-full border-4 bg-[#f2f7ff] p-8 sm:container sm:m-12 sm:mx-auto'>
+        <br />
+        <div className='rounded-box grid max-h-[75vh] flex-grow overflow-y-auto bg-white p-4 shadow-inner'>
+          {levels.map((level) => (
+            <Level
+              {...level}
+              onSelect={() => {
+                setSelectedLevelName(level.name)
+              }}
+            />
+          ))}
+        </div>
+        <div className='divider divider-horizontal' />
+        <ListInfoBox {...{ levelName: selectedLevelName }} />
+      </div>
+    </div>
   )
 }
 

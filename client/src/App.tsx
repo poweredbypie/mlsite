@@ -3,9 +3,10 @@ import { createRoot } from 'react-dom/client'
 import { Routes, Route, HashRouter } from 'react-router-dom'
 import './style.css'
 
-import { getLevel, getLevels, getPlayer, getPlayers } from './util/withApi'
 import Header from './components/Header'
 import List from './views/List'
+import Leaderboard from './views/Leaderboard'
+import SubmitRecord from './views/SubmitRecord'
 
 const App: React.FC = () => {
   return (
@@ -25,6 +26,8 @@ const App: React.FC = () => {
       />
       <Routes>
         <Route path='/' element={<List />} />
+        <Route path='/leaderboard' element={<Leaderboard />} />
+        <Route path='/submit' element={<SubmitRecord />} />
       </Routes>
     </HashRouter>
   )

@@ -6,7 +6,11 @@ import mongoose, { ClientSession } from "mongoose";
 import path from "path";
 import { Record, Level, Player } from "./schema";
 
-env.config();
+if (
+  process.env.BOT_TOKEN === undefined ||
+  process.env.MONGODB_URI === undefined
+)
+  env.config();
 
 const app = express();
 const port = process.env.PORT ?? 3000;
@@ -48,16 +52,20 @@ const transaction = (
 
 app.get("/levels", async (req, res) => {
   const levels = await Level.find({ position: { $lte: 100 } })
-    .lean()
-    .sort("position");
+    .lean({ virtuals: true })
+    .sort("position")
+    .select("-_id -__v -records");
   return res.status(200).json(levels);
 });
 
 app.get("/levels/:name", async (req, res) => {
   const level = await Level.findOne({ name: req.params.name })
-    .lean()
-    .populate("records", "player hertz link playerID");
-  return res.status(200).json(level?.records);
+    .lean({ virtuals: true })
+    .populate("records", "-_id -__v -level -levelID -playerID")
+    .select("-_id -__v");
+  return level
+    ? res.status(200).json(level)
+    : res.status(404).send("Level not found.");
 });
 
 app.post(
@@ -119,16 +127,17 @@ app.patch(
 
 app.get("/players", async (req, res) => {
   const players = await Player.find({ points: { $gt: 0 } })
-    .select("name points")
     .lean()
-    .sort("-points");
+    .sort("-points")
+    .select("name points -_id");
   return res.status(200).json(players);
 });
 
 app.get("/players/:name", async (req, res) => {
   const player = await Player.findOne({ name: req.params.name })
-    .lean()
-    .populate("records", "level hertz link levelID");
+    .lean({ virtuals: true })
+    .populate("records", "-_id -__v -player -levelID -playerID")
+    .select("-_id -id -__v");
   return player
     ? res.status(200).json(player)
     : res.status(404).send("Player not found.");
@@ -226,7 +235,7 @@ app.delete(
 );
 
 try {
-  mongoose.connect(process.env.MONGODB_TEST_URI as string);
+  mongoose.connect(process.env.MONGODB_URI as string);
 } catch (error) {
   console.error(error);
 }
