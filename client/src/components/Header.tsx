@@ -1,5 +1,4 @@
 import React from 'react'
-import { Container, Nav, Navbar, NavDropdown } from 'react-bootstrap'
 import { useNavigate } from 'react-router-dom'
 
 interface HeaderProps {
@@ -37,7 +36,7 @@ const Header: React.FC<HeaderProps> = (props: HeaderProps) => {
               <a>{mainTabs[i]}</a>
             </li>
           ))}
-          <li id='nav-dropdown' tabIndex={0}>
+          <li key='dropdown' tabIndex={0}>
             <a>
               Extras
               <svg

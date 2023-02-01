@@ -206,6 +206,13 @@ app.post(
     )
       throw 404;
     if (req.body.hertz === undefined || req.body.link === undefined) throw 400;
+    if (
+      await Record.exists({
+        player: req.body.player as string,
+        level: req.body.level as string,
+      })
+    )
+      throw 409;
     const record = new Record({
       player: req.body.player as string,
       level: req.body.level as string,
@@ -233,6 +240,36 @@ app.delete(
     return 200;
   })
 );
+
+app.post("/submit", async (req, res) => {
+  var isNew = 0;
+  if (
+    await Record.exists({
+      player: req.body.player as string,
+      level: req.body.level as string,
+    })
+  )
+    return res.sendStatus(409);
+  if (!(await Player.exists({ name: req.body.player as string }))) isNew += 1;
+  if (!(await Level.exists({ name: req.body.level as string }))) isNew += 2;
+  return fetch(`${process.env.BOT_LISTENER_URI}/submit`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ ...req.body, isNew }),
+  })
+    .then((data) => res.sendStatus(data.status))
+    .catch(() => res.sendStatus(503));
+});
+
+app.get("/members", async (req, res) => {
+  const players = await Player.find({ discord: { $exists: true } })
+    .lean()
+    .sort("-points")
+    .select("name discord points -_id");
+  return res.status(200).json(players);
+});
 
 try {
   mongoose.connect(process.env.MONGODB_URI as string);

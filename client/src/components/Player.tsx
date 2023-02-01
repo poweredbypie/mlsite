@@ -1,24 +1,30 @@
 import React, { useState, useEffect, useTransition, lazy } from 'react'
 import { APIManyPlayer } from '../util/withApi'
-import PlayerModal from './PlayerModal'
 
 interface PlayerProps extends APIManyPlayer {
+  show: boolean
   position: number
   onSelect: () => void
 }
 
 const Player: React.FC<PlayerProps> = (props: PlayerProps) => {
-  const { name, points, position, onSelect } = props
+  const { name, points, position, show, onSelect } = props
 
   return (
-    <>
-      <tr className='hover cursor-pointer' onClick={onSelect}>
-        <td>
-          {position}. {name}
-          &nbsp;<em>{Math.round(100 * points) / 100}</em>
-        </td>
-      </tr>
-    </>
+    show && (
+      <>
+        <tr className='hover cursor-pointer' onClick={onSelect}>
+          <td className='flex items-center'>
+            <div className='text-lg'>
+              <strong>{position}.</strong>&nbsp;{name}
+            </div>
+            <div className='text-md grow text-right opacity-70'>
+              <em>{points.toFixed(2)}</em>
+            </div>
+          </td>
+        </tr>
+      </>
+    )
   )
 }
 

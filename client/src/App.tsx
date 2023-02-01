@@ -7,29 +7,34 @@ import Header from './components/Header'
 import List from './views/List'
 import Leaderboard from './views/Leaderboard'
 import SubmitRecord from './views/SubmitRecord'
+import About from './views/About'
 
 const App: React.FC = () => {
   return (
-    <HashRouter>
-      <Header
-        name='GD Mobile List'
-        mainRoutes={{
-          about: '/about',
-          leaderboard: '/leaderboard',
-          submit: '/submit',
-        }}
-        extraRoutes={{
-          allExtremes: '/extremes',
-          levelPacks: '/packs',
-          updateLog: '/updates',
-        }}
-      />
-      <Routes>
-        <Route path='/' element={<List />} />
-        <Route path='/leaderboard' element={<Leaderboard />} />
-        <Route path='/submit' element={<SubmitRecord />} />
-      </Routes>
-    </HashRouter>
+    <>
+      <div className='fixed -z-50 h-screen w-full bg-[conic-gradient(at_top_left,_var(--tw-gradient-stops))] from-gray-400 via-gray-600 to-blue-800' />
+      <HashRouter>
+        <Header
+          name='GD Mobile List'
+          mainRoutes={{
+            about: '/about',
+            leaderboard: '/leaderboard',
+            submit: '/submit',
+          }}
+          extraRoutes={{
+            allExtremes: '/extremes',
+            levelPacks: '/packs',
+            updateLog: '/updates',
+          }}
+        />
+        <Routes>
+          <Route path='/' element={<List />} />
+          <Route path='/about' element={<About />} />
+          <Route path='/leaderboard' element={<Leaderboard />} />
+          <Route path='/submit' element={<SubmitRecord />} />
+        </Routes>
+      </HashRouter>
+    </>
   )
 }
 
