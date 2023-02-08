@@ -4,7 +4,7 @@ import env from "dotenv";
 import cors from "cors";
 import mongoose, { ClientSession } from "mongoose";
 import path from "path";
-import { Record, Level, Player } from "./schema";
+import { Record, Level, Player, Log } from "./schema";
 
 if (
   process.env.BOT_TOKEN === undefined ||
@@ -269,6 +269,33 @@ app.get("/members", async (req, res) => {
     .sort("-points")
     .select("name discord points -_id");
   return res.status(200).json(players);
+});
+
+app.get("/logs", async (req, res) => {
+  const logs = await Log.find().lean().select("-__v -_id");
+  return res.status(200).json(logs);
+});
+
+app.post("/logs", authed, async (req, res) => {
+  const log = new Log({
+    date: req.body.date as string,
+    content: req.body.content as string,
+    type: req.body.type as number,
+  });
+  await log.save();
+  return res.status(201).json({ id: log.id });
+});
+
+app.patch("/logs/:id", authed, async (req, res) => {
+  const log = await Log.findByIdAndUpdate(req.params.id, {
+    $set: { content: req.body.content },
+  });
+  return log ? res.sendStatus(200) : res.sendStatus(404);
+});
+
+app.delete("/logs/:id", authed, async (req, res) => {
+  const log = await Log.findByIdAndDelete(req.params.id);
+  return log ? res.sendStatus(200) : res.sendStatus(404);
 });
 
 try {

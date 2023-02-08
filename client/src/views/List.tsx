@@ -25,7 +25,7 @@ const List: React.FC = () => {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div className='h-[60vh] overflow-y-auto'>
+        <div className='h-[60vh] overflow-y-auto px-4'>
           {levels.map((level) => (
             <Level
               {...level}

@@ -14,7 +14,7 @@ const Level: React.FC<LevelProps> = (props: LevelProps) => {
       <>
         <div
           tabIndex={0}
-          className='rounded-box cursor-pointer border border-base-300 bg-gradient-to-r from-[#f5f7f9] to-[#d9dfe8] p-12 shadow-lg transition-all hover:shadow-xl'
+          className='rounded-box cursor-pointer border border-base-300 bg-white p-12 shadow-lg transition-all hover:shadow-xl'
           onClick={onSelect}
         >
           <div className='text-xl'>

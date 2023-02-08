@@ -42,7 +42,7 @@ const SubmitRecord: React.FC = () => {
         <label className='input-group place-content-center'>
           <span>Player</span>
           <CreatableSelect
-            className='z-50 w-48'
+            className='z-40 w-48'
             name='playerSelect'
             options={players.map((p) => ({ value: p.name, label: p.name }))}
             onChange={(e) => setPlayer(e.value)}

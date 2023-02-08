@@ -37,6 +37,12 @@ export interface APIOnePlayer extends APIManyPlayer {
   records: APIPlayerRecord[]
 }
 
+export interface APILog {
+  date: string
+  content: string
+  type: number
+}
+
 interface RecordSubmission {
   player: string
   level: string
@@ -58,6 +64,10 @@ export const getPlayers = async (): Promise<APIManyPlayer[]> => {
 
 export const getPlayer = async (name: string): Promise<APIOnePlayer> => {
   return fetch(`/players/${name}`).then((data) => data.json())
+}
+
+export const getLogs = async (): Promise<APILog[]> => {
+  return fetch(`/logs`).then((data) => data.json())
 }
 
 export const submitRecord = async (record: RecordSubmission): Promise<Response> => {

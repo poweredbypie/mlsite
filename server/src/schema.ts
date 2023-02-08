@@ -78,6 +78,12 @@ interface PlayerModel extends Model<IPlayer, {}, IPlayerMethods> {
 type PlayerDocument = Document<unknown, any, IPlayer> &
   IPlayer & { _id: Types.ObjectId } & IPlayerMethods;
 
+interface ILog {
+  date: string;
+  content: string;
+  type: number;
+}
+
 interface LP {
   [levelID: string]: number;
 }
@@ -333,6 +339,13 @@ const playerSchema = new Schema<IPlayer, PlayerModel, IPlayerMethods>(
   }
 );
 
+const logSchema = new Schema<ILog>({
+  date: { type: String, required: true },
+  content: { type: String, required: true },
+  type: { type: Number, required: true, min: 1, max: 3 },
+});
+
 export const Record = model<IRecord, RecordModel>("Record", recordSchema);
 export const Level = model<ILevel, LevelModel>("Level", levelSchema);
 export const Player = model<IPlayer, PlayerModel>("Player", playerSchema);
+export const Log = model<ILog>("Log", logSchema);
