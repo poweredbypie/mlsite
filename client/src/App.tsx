@@ -20,7 +20,6 @@ const App: React.FC = () => {
           routes={{
             about: '/about',
             leaderboard: '/leaderboard',
-            log: '/log',
             submit: '/submit',
           }}
         />
