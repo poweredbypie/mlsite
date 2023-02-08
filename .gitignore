@@ -2,3 +2,4 @@ node_modules
 .vscode
 server/test/apitest.sh
 server/test/api.test.ts
+.env
