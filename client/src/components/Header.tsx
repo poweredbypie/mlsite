@@ -20,9 +20,9 @@ const Header: React.FC<HeaderProps> = (props: HeaderProps) => {
   return (
     <div className='navbar bg-slate-700 pr-12' id='nav'>
       <div className='flex-1' onClick={() => navigate('/')}>
-        <a className='btn-ghost btn text-xl text-white normal-case'>{name}</a>
+        <a className='btn-ghost btn text-xl normal-case text-white'>{name}</a>
       </div>
-      { window.innerWidth > 640 ? (
+      {window.innerWidth > 640 ? (
         <div className='flex-none'>
           <ul className='menu menu-horizontal px-1'>
             {Object.keys(routes).map((r, i) => (
@@ -39,11 +39,11 @@ const Header: React.FC<HeaderProps> = (props: HeaderProps) => {
         </div>
       ) : (
         <div className='flex-none'>
-          <div className='dropdown dropdown-end' onClick={() => setShow(!show)}>
-            <label tabIndex={0} className='btn btn-ghost'>
-              <HiMenu size={30}/>
+          <div className='dropdown-end dropdown' onClick={() => setShow(!show)}>
+            <label tabIndex={0} className='btn-ghost btn'>
+              <HiMenu size={30} />
             </label>
-            <ul tabIndex={0} className='menu dropdown-content rounded-box bg-white z-60' hidden={!show}>
+            <ul tabIndex={0} className='z-60 dropdown-content menu rounded-box bg-white' hidden={!show}>
               {Object.keys(routes).map((r, i) => (
                 <li
                   key={`link-${i}`}
