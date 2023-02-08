@@ -8,7 +8,6 @@ import List from './views/List'
 import Leaderboard from './views/Leaderboard'
 import SubmitRecord from './views/SubmitRecord'
 import About from './views/About'
-import UpdateLog from './views/UpdateLog'
 
 const App: React.FC = () => {
   return (
