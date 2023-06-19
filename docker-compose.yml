@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  # Database
+  db:
+    container_name: db
+    build: db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: pass
+      MONGO_INITDB_DATABASE: ml
+    ports:
+      - 27017:27017
+    volumes:
+      - db:/data/db
+  # App
+  app:
+    build: .
+    environment:
+      MONGODB_URI: 'mongodb://root:pass@db:27017'
+    ports:
+      - 3000:3000
+    depends_on:
+      - db
+
+volumes:
+  # Persistent DB data
+  db:
