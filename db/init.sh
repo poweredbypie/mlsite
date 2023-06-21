@@ -1,3 +1,3 @@
 #!/bin/sh
 
-mongorestore --archive=db.dump
+mongorestore --archive=/db.dump

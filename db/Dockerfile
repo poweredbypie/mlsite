@@ -1,3 +1,4 @@
 FROM mongo:6
 
-COPY init.sh db.dump /docker-entrypoint-initdb.d
+COPY init.sh /docker-entrypoint-initdb.d
+COPY db.dump /
