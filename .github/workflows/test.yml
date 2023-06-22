@@ -15,4 +15,4 @@ jobs:
 
     - name: Run tests in Docker image
       run: |
-        docker compose run jest
+        docker compose up jest

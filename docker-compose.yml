@@ -2,40 +2,27 @@ version: '3.8'
 
 x-app-vals: &app_vals
   build: .
-  ports:
-    - 3000:3000
-
-x-db-vals: &db_vals
-  environment:
-    MONGO_INITDB_ROOT_USERNAME: root
-    MONGO_INITDB_ROOT_PASSWORD: pass
-    MONGO_INITDB_DATABASE: ml
-  ports:
-    - 27017:27017
+  depends_on:
+    - db
 
 services:
-  # Sample database so the webpage isn't empty by default
-  sample_db:
-    <<: *db_vals
+  # Database stuff
+  db:
     build: db
-    container_name: sample_db
+    container_name: db
+    ports:
+      - 27017:27017
+  # Default app
   app:
     <<: *app_vals
     environment:
-      MONGODB_URI: 'mongodb://root:pass@sample_db:27017'
-    depends_on:
-      - sample_db
-
-  # Test database for Jest
-  test_db:
-    <<: *db_vals
-    image: mongo:6
-    container_name: test_db
-  # Jest runner
+      MONGODB_URI: 'mongodb://db:27017/ml'
+    command: 'start'
+    ports:
+      - 3000:3000
+  # Jest test runner
   jest:
     <<: *app_vals
     environment:
-      MONGODB_URI: 'mongodb://root:pass@test_db:27017'
-    entrypoint: ['yarn', 'test']
-    depends_on:
-      - test_db
+      MONGODB_URI: 'mongodb://db:27017/test'
+    command: 'test'
