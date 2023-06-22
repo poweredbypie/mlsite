@@ -15,4 +15,4 @@ jobs:
 
     - name: Run tests in Docker image
       run: |
-        docker compose up jest
+        docker compose up jest --exit-code-from=jest
