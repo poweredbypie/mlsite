@@ -4,7 +4,9 @@ WORKDIR /app
 
 # Install dependencies
 COPY package.json yarn.lock .
-RUN yarn
+COPY client/package.json client/
+COPY server/package.json server/
+RUN yarn install --frozen-lockfile
 
 COPY . .
 RUN yarn build
