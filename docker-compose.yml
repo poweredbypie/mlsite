@@ -36,6 +36,6 @@ services:
     <<: *app_vals
     environment:
       MONGODB_URI: 'mongodb://root:pass@test_db:27017'
-    entrypoint: ['npm', 'run', 'test:db']
+    entrypoint: ['yarn', 'test']
     depends_on:
       - test_db
