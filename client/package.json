@@ -4,6 +4,7 @@
   "description": "mobile list website client",
   "scripts": {
     "build": "webpack",
+    "dev": "webpack watch",
     "format": "prettier --write src"
   },
   "author": "Ben Barber",

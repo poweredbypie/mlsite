@@ -9,7 +9,7 @@
   "scripts": {
     "build": "yarn workspaces run build",
     "start": "node dist/server/bundle.js",
-    "dev": "nodemon --config client/nodemon.json",
+    "dev": "yarn workspace mlsite-client run dev",
     "format": "yarn workspaces run format",
     "test": "jest --detectOpenHandles -i --verbose"
   },
