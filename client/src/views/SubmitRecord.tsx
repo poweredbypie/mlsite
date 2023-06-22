@@ -97,7 +97,7 @@ const SubmitRecord: React.FC = () => {
         <br />
         <div className='flex justify-center'>
           <button
-            className='btn-outline btn w-36 disabled:btn-disabled'
+            className='btn-outline btn disabled:btn-disabled w-36'
             disabled={disabled}
             onClick={() => {
               submitRecord({ player, level, hertz, link })
