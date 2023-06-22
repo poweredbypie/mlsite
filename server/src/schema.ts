@@ -253,7 +253,7 @@ const playerSchema = new Schema<IPlayer, PlayerModel, IPlayerMethods>(
     methods: {
       async getCompletedLevels() {
         await this.populate('records', 'levelID')
-        var levels = []
+        let levels = []
         for (const r of this.records) {
           levels.push(await Level.findById(r.levelID))
         }

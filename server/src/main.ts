@@ -229,7 +229,7 @@ app.delete(
 )
 
 app.post('/submit', async (req, res) => {
-  var isNew = 0
+  let isNew = 0
   if (
     await Record.exists({
       player: req.body.player as string,
